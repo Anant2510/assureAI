@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ASSURE.AI — AI-Powered Real-Time Personalization for Insurance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:'Inter',sans-serif;background:#F3F4F6;overflow-x:hidden}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,176,56,.35)}50%{box-shadow:0 0 0 8px rgba(232,176,56,0)}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes flowDash{to{stroke-dashoffset:-12}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.fu{animation:fadeUp .55s cubic-bezier(.22,1,.36,1) both}
+.fi{animation:fadeIn .45s ease both}
+.si{animation:slideIn .5s cubic-bezier(.22,1,.36,1) both}
+.sci{animation:scaleIn .4s cubic-bezier(.22,1,.36,1) both}
+.hover-lift{transition:transform .22s,box-shadow .22s}
+.hover-lift:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.04)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const {useState,useEffect,useRef,useCallback} = React;
+const mono = "'JetBrains Mono',monospace";
+
+// ── Design Tokens ──
+const X = {
+  // Brand
+  gold: "#E8B038",
+  goldB: "#FEF9E7",
+  goldDark: "#C4912A",
+  // Semantic Palette
+  cyan: "#06B6D4",   cyanB: "#ECFEFF",
+  purple: "#8B5CF6", purpleB: "#F5F3FF",
+  blue: "#3B82F6",   blueB: "#EFF6FF",
+  amber: "#F59E0B",  amberB: "#FFFBEB",
+  coral: "#E8613C",  coralB: "#FFF1ED",
+  pink: "#EC4899",   pinkB: "#FDF2F8",
+  green: "#10B981",  greenB: "#ECFDF5",
+  orange: "#F97316", orangeB: "#FFF7ED",
+  // Neutrals
+  t1: "#111827", t2: "#4B5563", t3: "#9CA3AF",
+  bg: "#F3F4F6", card: "#FFFFFF", surf: "#F9FAFB",
+  bdr: "#E5E7EB",
+  // Shadows
+  sh: "0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)",
+  shH: "0 4px 14px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04)",
+};
+
+// ── Pipeline Data ──
+const PIPELINE = [
+  {
+    id:"ingest", agent:"Data Ingestion Agent", label:"Data Ingestion\n& Integration", icon:"📡",
+    color:X.cyan, bg:X.cyanB,
+    diff:"Prebuilt Connectors (PAS, Claims, UW, CRM; Credit/Weather/Geo)",
+    kpi:"Policyholder 360 View",
+    desc:"Unified data ingestion layer that connects to core insurance systems — PAS, Claims, Underwriting, CRM — alongside external enrichment sources like credit bureaus, weather APIs, and geolocation services. Creates a real-time Policyholder 360 view."
+  },
+  {
+    id:"model", agent:"AI Data Modeling Agent", label:"AI Data\nModeling", icon:"🧠",
+    color:X.purple, bg:X.purpleB,
+    diff:"AI-Enhanced Policy/Claim/Risk Schemas",
+    kpi:"60% Less Data Modeling",
+    desc:"Automatically generates and evolves insurance data models using AI. Learns from policy structures, claim patterns, and risk profiles to create optimized schemas — reducing manual data modeling time by 60%."
+  },
+  {
+    id:"identity", agent:"Identity Stitching Agent", label:"Identity\nStitching", icon:"🔗",
+    color:X.blue, bg:X.blueB,
+    diff:"Auto Mapping of Identities Using Agentic AI",
+    kpi:"Unified Customer ID",
+    desc:"Uses agentic AI to automatically resolve and stitch policyholder identities across disparate systems. Maps individuals, households, and business entities into a single golden record for personalization."
+  },
+  {
+    id:"propensity", agent:"Propensity Modeling Agent", label:"Predictive &\nPropensity", icon:"📊",
+    color:X.amber, bg:X.amberB,
+    diff:"AI Models for Conversion, Renewal, Lapse, Severity/Fraud, Next-Best Coverage",
+    kpi:"40% More Accurate",
+    desc:"Predictive models that score policyholders for conversion likelihood, renewal probability, lapse risk, claim severity, fraud indicators, and next-best coverage recommendations — achieving 40% more accurate targeting."
+  },
+  {
+    id:"personalize", agent:"Personalization Agent", label:"1:1 Personalization\nThrough GenAI", icon:"🎯",
+    color:X.coral, bg:X.coralB,
+    diff:"AI Driven Micro-Segments — Real-Time Quotes, Renewal Nudges, etc.",
+    kpi:"Needs Based Journeys",
+    desc:"Creates hyper-personalized micro-segments and delivers real-time interventions — dynamic quotes, renewal nudges, cross-sell prompts, and coverage suggestions — all driven by GenAI for needs-based journeys."
+  },
+  {
+    id:"creative", agent:"Creative Generation Agent", label:"AI Generated\nCreative & Content", icon:"✨",
+    color:X.pink, bg:X.pinkB,
+    diff:"GenAI Generated Quote Pages, Rider Explainers, Claim Comms",
+    kpi:"60% Faster Content",
+    desc:"Generates personalized creative assets at scale — quote pages, rider explainers, claim communications, policy summaries — with GenAI producing content variations 60% faster than manual creation."
+  },
+  {
+    id:"omni", agent:"Omnichannel Activation Agent", label:"Omnichannel\nActivation", icon:"📢",
+    color:X.green, bg:X.greenB,
+    diff:"100% Channel Coverage",
+    kpi:"100% Channel Coverage",
+    desc:"Orchestrates personalized experiences across every touchpoint — website, mobile app, push notifications, SMS, email, social media, and offline channels — ensuring 100% channel coverage."
+  },
+  {
+    id:"measure", agent:"Measurement & Optimization Agent", label:"Continuous\nMeasurement", icon:"📈",
+    color:X.orange, bg:X.orangeB,
+    diff:"AI Insights on Conversion/Renewal, Loss-Ratio, Fraud for Continuous Optimization",
+    kpi:"Faster Feedback Loop",
+    desc:"Continuously measures and optimizes every interaction using AI-based insights on conversion, renewal rates, loss ratios, and fraud detection — creating a faster customer feedback loop for perpetual improvement."
+  },
+];
+
+const KPIS = [
+  {stat:"360°", label:"Policyholder View", color:X.cyan},
+  {stat:"60%", label:"Less Data Modeling Time", color:X.purple},
+  {stat:"40%", label:"More Accurate Targeting", color:X.amber},
+  {stat:"60%", label:"Faster Content Generation", color:X.pink},
+  {stat:"100%", label:"Channel Coverage", color:X.green},
+  {stat:"+3-5pts", label:"Renewal Rate Uplift", color:X.coral},
+];
+
+const CHANNELS = [
+  {name:"Website", icon:"🖥️"},
+  {name:"Applications", icon:"📱"},
+  {name:"Notifications", icon:"🔔"},
+  {name:"SMS", icon:"💬"},
+  {name:"Email", icon:"📧"},
+  {name:"Social Media", icon:"❤️"},
+  {name:"Offline", icon:"📄"},
+];
+
+const USE_CASES = [
+  {
+    id:"renewal",
+    title:"Proactive Renewal Retention",
+    subtitle:"Identify at-risk policyholders and intervene before lapse",
+    icon:"🛡️", color:X.coral, bg:X.coralB,
+    policyholder:{name:"Sarah Mitchell", type:"Auto + Home Bundle", tenure:"7 years", ltv:"$42,000", risk:"High Lapse Risk", premium:"$3,200/yr"},
+    trigger:{title:"Renewal Risk Alert", signals:[
+      {s:"Billing System", e:"Missed last premium payment", sev:"critical"},
+      {s:"Web Analytics", e:"Compared quotes on aggregator site", sev:"high"},
+      {s:"Claims History", e:"Recent claim denied — dissatisfaction flag", sev:"medium"},
+    ]},
+    offer:{headline:"Loyalty Renewal Package", action:"Lock in 12% loyalty discount + enhanced roadside coverage", discount:"12%", addon:"Enhanced Roadside", channel:"Email + SMS + Agent Call"},
+    result:{before:"72%", after:"94%", metric:"renewal probability"},
+    steps:[
+      {t:"Ingest policyholder data from PAS, claims, billing, and web analytics", d:{sources:"PAS, Claims, Billing, Web",records:"847 touchpoints",latency:"<2s"}},
+      {t:"Build unified risk profile with payment history and digital behavior", d:{schema:"Auto+Home Bundle Profile",features:"32 risk signals",modelVersion:"v4.2"}},
+      {t:"Stitch identity across billing, web cookies, and agent CRM records", d:{matchedIds:4,confidence:"98.2%",goldenRecord:"SM-2024-7821"}},
+      {t:"Score lapse probability and identify optimal intervention window", d:{lapseScore:0.73,bestWindow:"14 days pre-renewal",segment:"High-Value At-Risk"}},
+      {t:"Generate personalized renewal offer with loyalty incentives", d:{microSegment:"Loyal-Bundled-AtRisk",intervention:"Loyalty Lock + Enhanced Coverage",timing:"Immediate"}},
+      {t:"Create personalized renewal email, SMS, and agent briefing", d:{emailVariant:"Loyalty-Appreciation-v3",smsTemplate:"Renewal-Urgency-Soft",agentBrief:"Generated"}},
+      {t:"Deploy across email, SMS, and trigger agent outbound call", d:{channels:["Email","SMS","Agent Call"],priority:"High",sendTime:"10:00 AM local"}},
+      {t:"Track open rates, click-through, agent call outcome, and renewal status", d:{emailOpened:true,smsClicked:true,agentCallScheduled:"Tomorrow 2PM",renewalStatus:"Pending"}},
+    ]
+  },
+  {
+    id:"crosssell",
+    title:"Intelligent Rider Cross-Sell",
+    subtitle:"Recommend riders and add-ons based on life events and coverage gaps",
+    icon:"💎", color:X.blue, bg:X.blueB,
+    policyholder:{name:"James Chen", type:"Term Life", tenure:"3 years", ltv:"$18,500", risk:"Coverage Gap", premium:"$1,800/yr"},
+    trigger:{title:"Life Event Detection", signals:[
+      {s:"Public Records", e:"Recent home purchase detected", sev:"high"},
+      {s:"Policy Analysis", e:"No critical illness rider on Term Life", sev:"medium"},
+      {s:"Behavioral Model", e:"Browsing life insurance FAQ pages", sev:"medium"},
+    ]},
+    offer:{headline:"Complete Protection Bundle", action:"Add Critical Illness + Mortgage Protection riders at 15% bundle discount", discount:"15%", addon:"CI + Mortgage Rider", channel:"App Notification + Email"},
+    result:{before:"$1,800", after:"$2,640", metric:"annual premium (rider attach)"},
+    steps:[
+      {t:"Ingest policy data, public records, and web behavior signals", d:{sources:"PAS, Public Records, Web Analytics",records:"312 touchpoints",latency:"<1.5s"}},
+      {t:"Analyze coverage structure and identify gap in protection portfolio", d:{schema:"Term Life + Gap Analysis",features:"18 coverage signals",modelVersion:"v3.8"}},
+      {t:"Match policyholder across policy system and digital footprint", d:{matchedIds:3,confidence:"96.7%",goldenRecord:"JC-2024-4455"}},
+      {t:"Score rider attach propensity and optimal offer configuration", d:{attachScore:0.82,bestRider:"Critical Illness + Mortgage",segment:"Young-Homeowner-Gap"}},
+      {t:"Generate personalized rider recommendation with life event context", d:{microSegment:"New-Homeowner-Underinsured",intervention:"Bundle Rider Offer",timing:"Within 48hrs of home purchase"}},
+      {t:"Create rider explainer content and personalized quote page", d:{quotePageId:"QP-JC-2024-R1",explainerType:"Visual-Comparison",variants:3}},
+      {t:"Push via app notification and follow-up email with quote link", d:{channels:["App Push","Email"],priority:"Medium",sendTime:"Evening 7PM local"}},
+      {t:"Monitor engagement, quote page visits, and rider conversion", d:{pushOpened:true,quotePageViews:3,timeOnPage:"4m 22s",riderAdded:"Pending"}},
+    ]
+  },
+];
+
+const OUTCOMES = [
+  {stat:"+3–5 pts", label:"Renewal Rate", color:X.coral, bg:X.coralB},
+  {stat:"+10–15%", label:"Rider Cross-Sell", color:X.blue, bg:X.blueB},
+  {stat:"30–50%", label:"Lower Ops Costs", color:X.green, bg:X.greenB},
+];
+
+// ── Reusable Components ──
+function Badge({text, color=X.coral, bg}){
+  return <span style={{fontSize:10,fontWeight:600,padding:"2.5px 9px",borderRadius:10,background:bg||`${color}14`,color,letterSpacing:".03em",whiteSpace:"nowrap"}}>{text}</span>;
+}
+
+function DataBlock({entries, color}){
+  return (
+    <div style={{background:X.surf,borderRadius:10,padding:"10px 14px",fontFamily:mono,fontSize:10.5,lineHeight:1.9,border:`1px solid ${X.bdr}`}}>
+      {Object.entries(entries).map(([k,v])=>(
+        <div key={k}><span style={{color,fontWeight:600}}>{k}:</span>{" "}<span style={{color:X.t2}}>{String(v)}</span></div>
+      ))}
+    </div>
+  );
+}
+
+function Section({children, style={}, className="fu"}){
+  return <section className={className} style={{margin:"24px 24px 0",padding:"28px 32px",background:X.card,borderRadius:18,border:`1px solid ${X.bdr}`,boxShadow:X.sh,...style}}>{children}</section>;
+}
+
+// ── SVG Architecture Diagram ──
+function ArchDiagram({selected, onSelect}){
+  const W=1000, H=290, nodeW=108, nodeH=76, gap=8;
+  const totalW = PIPELINE.length*nodeW + (PIPELINE.length-1)*gap;
+  const startX = (W-totalW)/2;
+  const Y=60;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",display:"block"}}>
+      {/* Title */}
+      <text x={W/2} y={28} textAnchor="middle" style={{fontSize:9,fontWeight:700,fill:X.t3,letterSpacing:"0.15em",fontFamily:"Inter"}}>
+        ASSURE.AI PIPELINE — {PIPELINE.length} AUTONOMOUS AGENTS
+      </text>
+
+      {/* Connecting lines */}
+      {PIPELINE.slice(0,-1).map((_,i)=>{
+        const x1=startX+i*(nodeW+gap)+nodeW;
+        const x2=startX+(i+1)*(nodeW+gap);
+        const cy=Y+nodeH/2;
+        return <line key={i} x1={x1} y1={cy} x2={x2} y2={cy} stroke={X.bdr} strokeWidth={1.5} strokeDasharray="4 3" style={{animation:"flowDash 1s linear infinite"}}/>;
+      })}
+
+      {/* Arrow markers */}
+      <defs>
+        <marker id="arrow" viewBox="0 0 6 6" refX={5} refY={3} markerWidth={5} markerHeight={5} orient="auto-start-reverse">
+          <path d="M0,0 L6,3 L0,6 z" fill={X.t3}/>
+        </marker>
+      </defs>
+
+      {PIPELINE.slice(0,-1).map((_,i)=>{
+        const x1=startX+i*(nodeW+gap)+nodeW+2;
+        const x2=startX+(i+1)*(nodeW+gap)-2;
+        const cy=Y+nodeH/2;
+        return <line key={`a${i}`} x1={x1} y1={cy} x2={x2} y2={cy} stroke="transparent" strokeWidth={1} markerEnd="url(#arrow)"/>;
+      })}
+
+      {/* Nodes */}
+      {PIPELINE.map((p,i)=>{
+        const nx=startX+i*(nodeW+gap);
+        const isActive=selected===p.id;
+        return (
+          <g key={p.id} onClick={()=>onSelect(isActive?null:p.id)} style={{cursor:"pointer"}}>
+            <rect x={nx} y={Y} width={nodeW} height={nodeH} rx={12} ry={12}
+              fill={isActive?p.bg:X.card}
+              stroke={isActive?p.color:X.bdr}
+              strokeWidth={isActive?2.5:1}
+              style={{filter:isActive?`drop-shadow(0 0 8px ${p.color}44)`:undefined,transition:"all .2s"}}
+            />
+            <text x={nx+nodeW/2} y={Y+24} textAnchor="middle" style={{fontSize:14}}>{p.icon}</text>
+            {p.label.split("\n").map((line,li)=>(
+              <text key={li} x={nx+nodeW/2} y={Y+40+li*11} textAnchor="middle"
+                style={{fontSize:7.5,fontWeight:600,fill:isActive?p.color:X.t1,fontFamily:"Inter"}}>{line}</text>
+            ))}
+          </g>
+        );
+      })}
+
+      {/* KPI labels below nodes */}
+      {PIPELINE.map((p,i)=>{
+        const nx=startX+i*(nodeW+gap);
+        const cy=Y+nodeH;
+        return (
+          <g key={`k${i}`}>
+            <line x1={nx+nodeW/2} y1={cy+4} x2={nx+nodeW/2} y2={cy+18} stroke={p.color} strokeWidth={1} strokeDasharray="2 2"/>
+            <text x={nx+nodeW/2} y={cy+30} textAnchor="middle" style={{fontSize:6,fontWeight:600,fill:p.color,fontFamily:"Inter"}}>{p.kpi}</text>
+          </g>
+        );
+      })}
+
+      {/* Activation bar */}
+      <rect x={40} y={H-50} width={W-80} height={36} rx={10} fill={X.surf} stroke={X.bdr} strokeWidth={1}/>
+      <text x={W/2} y={H-38} textAnchor="middle" style={{fontSize:6.5,fontWeight:700,fill:X.t3,letterSpacing:".12em",fontFamily:"Inter"}}>ACTIVATION CHANNELS</text>
+      {CHANNELS.map((ch,i)=>{
+        const cx=80+i*((W-160)/CHANNELS.length)+((W-160)/CHANNELS.length)/2;
+        return (
+          <g key={ch.name}>
+            <text x={cx} y={H-20} textAnchor="middle" style={{fontSize:10}}>{ch.icon}</text>
+            <text x={cx} y={H-10} textAnchor="middle" style={{fontSize:5.5,fontWeight:500,fill:X.t2,fontFamily:"Inter"}}>{ch.name}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── Detail Panel ──
+function DetailPanel({stage}){
+  if(!stage) return null;
+  const p=PIPELINE.find(s=>s.id===stage);
+  return (
+    <div className="sci" style={{marginTop:16,padding:"20px 24px",background:p.bg,borderRadius:14,border:`1.5px solid ${p.color}30`}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+        <span style={{fontSize:28}}>{p.icon}</span>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,color:X.t1}}>{p.agent}</div>
+          <div style={{display:"flex",gap:8,marginTop:4}}>
+            <Badge text={`DIFF: ${p.diff}`} color={p.color}/>
+            <Badge text={`KPI: ${p.kpi}`} color={p.color} bg={`${p.color}22`}/>
+          </div>
+        </div>
+      </div>
+      <p style={{fontSize:13,lineHeight:1.7,color:X.t2}}>{p.desc}</p>
+    </div>
+  );
+}
+
+// ── Demo Components ──
+function DemoCards({onLaunch}){
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+      {USE_CASES.map((uc,i)=>(
+        <div key={uc.id} className="fu hover-lift" style={{animationDelay:`${i*.08}s`,padding:"24px",background:X.card,borderRadius:16,border:`1px solid ${X.bdr}`,boxShadow:X.sh,cursor:"pointer"}} onClick={()=>onLaunch(uc.id)}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <span style={{fontSize:32,width:48,height:48,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:12,background:uc.bg}}>{uc.icon}</span>
+            <div>
+              <div style={{fontSize:16,fontWeight:700,color:X.t1}}>{uc.title}</div>
+              <div style={{fontSize:12,color:X.t2,marginTop:2}}>{uc.subtitle}</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
+            <Badge text={uc.policyholder.type} color={uc.color}/>
+            <Badge text={uc.policyholder.risk} color={X.coral}/>
+            <Badge text={`LTV: ${uc.policyholder.ltv}`} color={X.green}/>
+          </div>
+          <button style={{width:"100%",padding:"10px",background:uc.color,color:"#fff",border:"none",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",transition:"opacity .2s"}}
+            onMouseOver={e=>e.target.style.opacity=0.85} onMouseOut={e=>e.target.style.opacity=1}>
+            Launch Demo →
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DemoRunner({useCase, onBack}){
+  const uc=USE_CASES.find(u=>u.id===useCase);
+  const [currentStep,setCurrentStep]=useState(-1);
+  const [stepStates,setStepStates]=useState(uc.steps.map(()=>"pending"));
+  const [phase,setPhase]=useState("running");
+  const [demoTab,setDemoTab]=useState("agent");
+  const running=useRef(false);
+
+  useEffect(()=>{
+    if(running.current) return;
+    running.current=true;
+    (async()=>{
+      for(let i=0;i<uc.steps.length;i++){
+        setCurrentStep(i);
+        setStepStates(prev=>{const n=[...prev];n[i]="running";return n;});
+        await new Promise(r=>setTimeout(r,800+Math.random()*500));
+        setStepStates(prev=>{const n=[...prev];n[i]="done";return n;});
+      }
+      setPhase("done");
+      setDemoTab("experience");
+    })();
+  },[]);
+
+  const progress=stepStates.filter(s=>s==="done").length/uc.steps.length*100;
+
+  return (
+    <div className="fi">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:24}}>{uc.icon}</span>
+          <span style={{fontSize:18,fontWeight:700,color:X.t1}}>{uc.title}</span>
+          {phase==="done"&&<Badge text="✓ Complete" color={X.green} bg={X.greenB}/>}
+        </div>
+        <button onClick={onBack} style={{padding:"6px 16px",background:X.surf,border:`1px solid ${X.bdr}`,borderRadius:8,fontSize:12,fontWeight:500,color:X.t2,cursor:"pointer"}}>← Back to Use Cases</button>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{height:4,background:X.bdr,borderRadius:2,marginBottom:20,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${progress}%`,background:uc.color,borderRadius:2,transition:"width .4s ease"}}/>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:20}}>
+        {/* Left panel */}
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          {/* Trigger */}
+          <div style={{padding:"16px",background:X.coralB,borderRadius:12,border:`1px solid ${X.coral}20`}}>
+            <div style={{fontSize:11,fontWeight:700,color:X.coral,marginBottom:8}}>⚡ {uc.trigger.title}</div>
+            {uc.trigger.signals.map((sig,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                <span style={{fontSize:8,fontWeight:700,padding:"1px 6px",borderRadius:6,
+                  background:sig.sev==="critical"?"#FEE2E2":sig.sev==="high"?"#FEF3C7":"#E0E7FF",
+                  color:sig.sev==="critical"?"#DC2626":sig.sev==="high"?"#D97706":"#4F46E5"
+                }}>{sig.sev.toUpperCase()}</span>
+                <span style={{fontSize:10,color:X.t2}}><strong>{sig.s}:</strong> {sig.e}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Policyholder */}
+          <div style={{padding:"16px",background:X.surf,borderRadius:12,border:`1px solid ${X.bdr}`}}>
+            <div style={{fontSize:11,fontWeight:700,color:X.t1,marginBottom:8}}>👤 Policyholder Profile</div>
+            <div style={{fontFamily:mono,fontSize:10.5,lineHeight:1.9,color:X.t2}}>
+              {Object.entries(uc.policyholder).map(([k,v])=>(
+                <div key={k}><span style={{fontWeight:600,color:uc.color}}>{k}:</span> {v}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* Execution log */}
+          <div style={{padding:"16px",background:X.surf,borderRadius:12,border:`1px solid ${X.bdr}`,maxHeight:260,overflowY:"auto"}}>
+            <div style={{fontSize:11,fontWeight:700,color:X.t1,marginBottom:10}}>🤖 Agent Pipeline Execution</div>
+            {uc.steps.map((step,i)=>{
+              const p=PIPELINE[i];
+              const state=stepStates[i];
+              return (
+                <div key={i} className={state!=="pending"?"si":""} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:8,opacity:state==="pending"?.35:1,transition:"opacity .3s",animationDelay:`${i*.05}s`}}>
+                  <span style={{fontSize:12,width:18,textAlign:"center",flexShrink:0}}>
+                    {state==="running"?<span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⚙️</span>:state==="done"?"✅":"⬜"}
+                  </span>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:600,color:p.color}}>{p.agent}</div>
+                    <div style={{fontSize:9.5,color:X.t3}}>{step.t}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right panel - tabs */}
+        <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {[{k:"agent",l:"🤖 Agent Flow"},{k:"experience",l:"📱 Experience"},{k:"data",l:"📊 Data"}].map(tab=>(
+              <button key={tab.k} onClick={()=>setDemoTab(tab.k)} style={{
+                padding:"7px 16px",borderRadius:8,border:`1px solid ${demoTab===tab.k?uc.color:X.bdr}`,
+                background:demoTab===tab.k?`${uc.color}12`:X.card,color:demoTab===tab.k?uc.color:X.t2,
+                fontSize:11,fontWeight:600,cursor:"pointer",transition:"all .2s"
+              }}>{tab.l}</button>
+            ))}
+          </div>
+
+          <div style={{background:X.surf,borderRadius:14,padding:"20px",border:`1px solid ${X.bdr}`,minHeight:400}}>
+            {demoTab==="agent"&&(
+              <div className="fi">
+                {PIPELINE.map((p,i)=>(
+                  <div key={p.id} className="si" style={{display:"flex",alignItems:"center",gap:12,marginBottom:14,animationDelay:`${i*.06}s`}}>
+                    <span style={{fontSize:22,width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",background:p.bg,borderRadius:10,border:`1px solid ${p.color}30`,flexShrink:0}}>{p.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,color:X.t1}}>{p.agent}</div>
+                      <Badge text={p.diff} color={p.color}/>
+                    </div>
+                    <span style={{fontSize:12}}>
+                      {stepStates[i]==="done"?"✅":stepStates[i]==="running"?<span style={{display:"inline-block",animation:"spin 1s linear infinite"}}>⚙️</span>:"⬜"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {demoTab==="experience"&&(
+              <div className="sci" style={{maxWidth:360,margin:"0 auto"}}>
+                {phase==="done"?(
+                  <div>
+                    {/* Push notification mock */}
+                    <div style={{background:X.card,borderRadius:14,padding:"16px",boxShadow:X.shH,marginBottom:16,border:`1px solid ${X.bdr}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <div style={{width:28,height:28,borderRadius:7,background:`linear-gradient(135deg,${X.gold},${X.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🛡️</div>
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:X.t1}}>ASSURE.AI</div>
+                          <div style={{fontSize:9,color:X.t3}}>just now</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:12,fontWeight:600,color:X.t1,marginBottom:4}}>{uc.offer.headline}</div>
+                      <div style={{fontSize:11,color:X.t2}}>{uc.offer.action}</div>
+                    </div>
+                    {/* Offer card */}
+                    <div style={{background:`linear-gradient(135deg,${uc.color}08,${uc.color}18)`,borderRadius:14,padding:"20px",border:`1.5px solid ${uc.color}30`}}>
+                      <div style={{fontSize:14,fontWeight:700,color:X.t1,marginBottom:8}}>{uc.offer.headline}</div>
+                      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+                        <Badge text={`${uc.offer.discount} Discount`} color={uc.color}/>
+                        <Badge text={uc.offer.addon} color={X.green}/>
+                        <Badge text={uc.offer.channel} color={X.purple}/>
+                      </div>
+                      <div style={{fontFamily:mono,fontSize:11,color:X.t2,marginBottom:14}}>{uc.offer.action}</div>
+                      <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:9,color:X.t3,marginBottom:2}}>Before</div>
+                          <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:X.t3}}>{uc.result.before}</div>
+                        </div>
+                        <div style={{fontSize:18}}>→</div>
+                        <div style={{textAlign:"center"}}>
+                          <div style={{fontSize:9,color:uc.color,marginBottom:2}}>After</div>
+                          <div style={{fontFamily:mono,fontSize:18,fontWeight:700,color:uc.color}}>{uc.result.after}</div>
+                        </div>
+                        <div style={{fontSize:10,color:X.t3}}>{uc.result.metric}</div>
+                      </div>
+                      <ClaimButton color={uc.color}/>
+                    </div>
+                  </div>
+                ):(
+                  <div style={{textAlign:"center",padding:"60px 20px",color:X.t3}}>
+                    <div style={{fontSize:36,marginBottom:12,animation:"spin 2s linear infinite"}}>⚙️</div>
+                    <div style={{fontSize:13,fontWeight:500}}>Pipeline executing...</div>
+                    <div style={{fontSize:11}}>Experience will appear when complete</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {demoTab==="data"&&(
+              <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+                {uc.steps.map((step,i)=>{
+                  const p=PIPELINE[i];
+                  if(stepStates[i]!=="done") return null;
+                  return (
+                    <div key={i} className="si" style={{animationDelay:`${i*.06}s`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                        <span style={{fontSize:12}}>{p.icon}</span>
+                        <span style={{fontSize:11,fontWeight:700,color:p.color}}>{p.agent}</span>
+                      </div>
+                      <DataBlock entries={step.d} color={p.color}/>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClaimButton({color}){
+  const [claimed,setClaimed]=useState(false);
+  return claimed?(
+    <div style={{textAlign:"center",padding:"10px",background:X.greenB,borderRadius:10,border:`1px solid ${X.green}30`}}>
+      <span style={{fontSize:13,fontWeight:600,color:X.green}}>✅ Offer Claimed Successfully</span>
+    </div>
+  ):(
+    <button onClick={()=>setClaimed(true)} style={{width:"100%",padding:"12px",background:color,color:"#fff",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",transition:"opacity .2s"}}
+      onMouseOver={e=>e.target.style.opacity=0.85} onMouseOut={e=>e.target.style.opacity=1}>
+      Claim Offer →
+    </button>
+  );
+}
+
+// ── Main App ──
+function App(){
+  const [archSelected,setArchSelected]=useState(null);
+  const [activeDemo,setActiveDemo]=useState(null);
+
+  return (
+    <div style={{display:"flex",minHeight:"100vh"}}>
+      {/* Sidebar */}
+      <nav style={{width:56,background:"#111827",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:16,gap:12,position:"fixed",height:"100vh",zIndex:200}}>
+        <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${X.gold},${X.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff",fontFamily:mono}}>A</div>
+        <div style={{width:28,height:2,background:"#374151",borderRadius:1,margin:"4px 0"}}/>
+        {["📊","🛡️","⚙️","📈"].map((ico,i)=>(
+          <div key={i} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",transition:"background .2s"}}
+            onMouseOver={e=>e.target.style.background="#1F2937"} onMouseOut={e=>e.target.style.background="transparent"}>{ico}</div>
+        ))}
+      </nav>
+
+      {/* Main content */}
+      <div style={{marginLeft:56,flex:1}}>
+        {/* Header */}
+        <header style={{position:"sticky",top:0,zIndex:100,background:"rgba(255,255,255,.92)",backdropFilter:"blur(12px)",borderBottom:`1px solid ${X.bdr}`,padding:"0 32px",height:54,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:10,fontWeight:600,color:X.t3,letterSpacing:".08em"}}>xPerion</span>
+            <span style={{color:X.t3}}>/</span>
+            <span style={{fontSize:10,fontWeight:600,color:X.t3}}>Industry Accelerators</span>
+            <span style={{color:X.t3}}>/</span>
+            <span style={{fontSize:10,fontWeight:700,color:X.gold}}>ASSURE.AI</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",background:X.surf,borderRadius:8,border:`1px solid ${X.bdr}`}}>
+              <span style={{fontSize:12,color:X.t3}}>🔍</span>
+              <span style={{fontSize:11,color:X.t3}}>Search agents...</span>
+            </div>
+            <div style={{width:32,height:32,borderRadius:10,background:`linear-gradient(135deg,${X.gold},${X.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#fff",fontWeight:700}}>C</div>
+          </div>
+        </header>
+
+        {/* Hero */}
+        <Section style={{background:`linear-gradient(135deg,${X.goldB},#FFFFFF 60%)`,border:`1.5px solid ${X.gold}25`,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-40,right:-40,width:200,height:200,background:`radial-gradient(circle,${X.gold}08,transparent 70%)`,borderRadius:"50%"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:20}}>
+            <div style={{width:64,height:64,borderRadius:16,background:`linear-gradient(135deg,${X.gold},${X.goldDark})`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 4px 20px ${X.gold}40`}}>
+              <span style={{fontSize:30}}>🛡️</span>
+            </div>
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:X.gold,letterSpacing:".12em",marginBottom:4}}>INDUSTRY ACCELERATOR</div>
+              <div style={{fontSize:30,fontWeight:900,color:X.t1,letterSpacing:"-.02em",lineHeight:1.1}}>ASSURE.AI</div>
+            </div>
+          </div>
+          <p style={{fontSize:15,color:X.t2,lineHeight:1.7,maxWidth:680}}>
+            AI-Powered Real-Time Personalization for Insurance. Unify policyholder data, predict behavior with propensity models, and deliver hyper-personalized experiences across every channel — driving renewals, cross-sell, and operational efficiency.
+          </p>
+          <div style={{display:"flex",gap:12,marginTop:20}}>
+            <button style={{padding:"10px 24px",background:X.gold,color:"#fff",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:`0 2px 12px ${X.gold}40`}}>
+              Explore Pipeline →
+            </button>
+            <button style={{padding:"10px 24px",background:X.card,color:X.t1,border:`1.5px solid ${X.bdr}`,borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              View Demo
+            </button>
+          </div>
+        </Section>
+
+        {/* KPI Strip */}
+        <div style={{margin:"24px 24px 0",display:"grid",gridTemplateColumns:`repeat(${KPIS.length},1fr)`,gap:12}}>
+          {KPIS.map((k,i)=>(
+            <div key={i} className="fu hover-lift" style={{animationDelay:`${i*.06}s`,padding:"18px 16px",background:X.card,borderRadius:14,border:`1px solid ${X.bdr}`,boxShadow:X.sh,textAlign:"center"}}>
+              <div style={{fontFamily:mono,fontSize:26,fontWeight:800,color:k.color,lineHeight:1}}>{k.stat}</div>
+              <div style={{fontSize:10.5,fontWeight:600,color:X.t2,marginTop:6}}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Architecture Diagram */}
+        <Section>
+          <div style={{fontSize:10,fontWeight:700,color:X.t3,letterSpacing:".1em",marginBottom:4}}>ARCHITECTURE</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{fontSize:18,fontWeight:800,color:X.t1}}>Assure.AI Agent Pipeline</div>
+            {archSelected&&<button onClick={()=>setArchSelected(null)} style={{padding:"5px 12px",background:X.surf,border:`1px solid ${X.bdr}`,borderRadius:7,fontSize:11,fontWeight:500,color:X.t2,cursor:"pointer"}}>Clear selection ✕</button>}
+          </div>
+          <ArchDiagram selected={archSelected} onSelect={setArchSelected}/>
+          <DetailPanel stage={archSelected}/>
+        </Section>
+
+        {/* Interactive Demo */}
+        <Section>
+          <div style={{fontSize:10,fontWeight:700,color:X.t3,letterSpacing:".1em",marginBottom:4}}>INTERACTIVE DEMO</div>
+          <div style={{fontSize:18,fontWeight:800,color:X.t1,marginBottom:20}}>See Assure.AI in Action</div>
+          {activeDemo?<DemoRunner useCase={activeDemo} onBack={()=>setActiveDemo(null)}/>:<DemoCards onLaunch={setActiveDemo}/>}
+        </Section>
+
+        {/* Business Outcomes */}
+        <div style={{margin:"24px 24px 0",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
+          {OUTCOMES.map((o,i)=>(
+            <div key={i} className="fu" style={{animationDelay:`${i*.08}s`,padding:"24px",background:o.bg,borderRadius:14,border:`1.5px solid ${o.color}30`,textAlign:"center"}}>
+              <div style={{fontFamily:mono,fontSize:28,fontWeight:900,color:o.color}}>{o.stat}</div>
+              <div style={{fontSize:13,fontWeight:600,color:X.t1,marginTop:6}}>{o.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <footer style={{margin:"24px",padding:"24px 32px",background:"#111827",borderRadius:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <span style={{fontSize:10,fontWeight:600,color:X.gold,letterSpacing:".1em"}}>xPerion</span>
+              <span style={{color:"#374151"}}>/</span>
+              <span style={{fontSize:13,fontWeight:800,color:"#F9FAFB"}}>ASSURE.AI</span>
+            </div>
+            <div style={{fontSize:11,color:"#6B7280"}}>AI-Powered Real-Time Personalization for Insurance</div>
+          </div>
+          <div style={{fontSize:10,color:"#4B5563"}}>© 2025 Coforge. Confidential.</div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
